@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BYTE</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="main">
+        <nav>
+            <div class="lnav">
+                <h3>Home</h3>
+            </div>
+            <div class="rnav">
+                <a href="#">About</a>
+                <a href="#">Contact us</a>
+                <a href="login.html">Login</a>
+                <a href="register.html">Register</a>
+            </div>
+        </nav>
+        <div class="mainpage">
+            <div class="user_details">
+                <div class="user_content">
+                    <h1>User Details</h1>
+                    <p id="userName"></p>
+                    <p id="userEmail"></p>
+                
+            </div>
+            <div class="poems">
+                <div class="poemauthor">
+                    <h1>Poems</h1>
+                    <div class="authorcontent"></div>
+                </div>
+                <div id="poemsList"></div>
+                <div class="poem-form">
+                    <h2>Submit a new Poem:</h2>
+                    <p>Poem:</p>
+                    <input type="textarea" id="poem" placeholder=""><br>
+                    <p>Author:</p>
+                    <input type="text" id="author" placeholder=""><br><br>
+                    <button id="submitPoemBtn" type="button">Submit Poem</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function fetchUserDetails() {
+                fetch('http://panel.mait.ac.in:8001/auth/user-details/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('userName').textContent = 'Name: ' + data.name;
+                    document.getElementById('userEmail').textContent = 'Email: ' + data.email;
+                })
+                .catch(error => console.error('Error fetching user details:', error));
+            }
+
+            fetchUserDetails();
+
+            function fetchPoems() {
+                fetch('http://panel.mait.ac.in:8001/poem/get/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const poemsList = document.getElementById('poemsList');
+                    poemsList.innerHTML = '';
+
+                    data.forEach(poem => {
+                        const poemElement = document.createElement('div');
+                        poemElement.classList.add('poem-item');
+                        poemElement.innerHTML = `
+                            <p><strong>Poem:</strong> ${poem.poem}</p>
+                            <p><strong>Author:</strong> ${poem.author}</p>
+                        `;
+                        poemsList.appendChild(poemElement);
+                    });
+                })
+                .catch(error => console.error('Error fetching poems:', error));
+            }
+
+            fetchPoems();
+
+            const submitPoemBtn = document.getElementById('submitPoemBtn');
+            submitPoemBtn.addEventListener('click', submitPoem);
+            function submitPoem() {
+                const poem = document.getElementById('poem').value;
+                const author = document.getElementById('author').value;
+
+                const poemData = {
+                    poem: poem,
+                    author: author
+                };
+
+                fetch('http://panel.mait.ac.in:8001/poem/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
+                    },
+                    body: JSON.stringify(poemData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to submit poem');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data.message);
+                    fetchPoems();
+                    clearPoemForm();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to submit poem. Please try again.');
+                });
+            }
+
+            function clearPoemForm() {
+                document.getElementById('poem').value = '';
+                document.getElementById('author').value = '';
+            }
+        });
+    </script>
+</body>
+</html>
